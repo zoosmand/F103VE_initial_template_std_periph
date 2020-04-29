@@ -32,7 +32,12 @@
                 "PREFETCH_ENABLE=1",
                 "INSTRUCTION_CACHE_ENABLE=1",
                 "DATA_CACHE_ENABLE=1",
-                "STM32F103xE"
+                "STM32F103xE",
+                "__CC_ARM",
+                "__INT8_TYPE__=char",
+                "__UINT8_TYPE__=unsigned char",
+                "__INT16_TYPE__=short int",
+                "__UINT16_TYPE__=short unsigned int"
             ],
             "intelliSenseMode": "clang-x64",
             "cStandard": "c11",

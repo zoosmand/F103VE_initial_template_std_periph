@@ -18,7 +18,6 @@ uint32_t seconds          = 0;
 uint32_t minutes          = 0;
 uint32_t _EREG_           = 0;
 uint32_t delay_tmp        = 0;
-uint32_t check            = 0;
 uint32_t SystemCoreClock  = 16000000;
 
 /* Private variables ---------------------------------------------------------*/
@@ -122,13 +121,12 @@ static void CronMillis_Handler(void) {
 // ---- Seconds ---- //
 static void CronSeconds_Handler(void) {
   //
-  // LL_IWDG_ReloadCounter(IWDG);
-  printf("test\n");
 }
 
 // ---- Minutes ---- //
 static void CronMinutes_Handler(void) {
   //
+  // printf("A minute left.\n");
 }
 
 
@@ -166,7 +164,6 @@ void Flags_Handler(void){
 void SystemInit (void) {
 
   #if (PREFETCH_ENABLE != 0)
-    // FLASH->ACR |= FLASH_ACR_PRFTBE;
     PREG_SET(FLASH->ACR, FLASH_ACR_PRFTBE_Pos);
   #else
     PREG_CLR(FLASH->ACR, FLASH_ACR_PRFTBE_Pos);
@@ -186,17 +183,11 @@ void SystemInit (void) {
 
   /* SysCfg */
   PREG_SET(RCC->APB2ENR, RCC_APB2ENR_AFIOEN_Pos);
-  check = 0;
-  while (!check) {
-    check = PREG_CHECK(RCC->APB2ENR, RCC_APB2ENR_AFIOEN_Pos);
-  }
+  while (!(PREG_CHECK(RCC->APB2ENR, RCC_APB2ENR_AFIOEN_Pos)));
 
   /* PWR */
   PREG_SET(RCC->APB1ENR, RCC_APB1ENR_PWREN_Pos);
-  check = 0;
-  while (!check) {
-    check = PREG_CHECK(RCC->APB1ENR, RCC_APB1ENR_PWREN_Pos);
-  }
+  while (!(PREG_CHECK(RCC->APB1ENR, RCC_APB1ENR_PWREN_Pos)));
 
   /* FLASH_IRQn interrupt configuration */
   NVIC_SetPriority(FLASH_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0, 0));
@@ -218,17 +209,11 @@ void SystemInit (void) {
 
   /* HSE enable and wait until it runs */
   PREG_SET(RCC->CR, RCC_CR_HSEON_Pos);
-  check = 0;
-  while (!check) {
-    check = PREG_CHECK(RCC->CR, RCC_CR_HSERDY_Pos);
-  }
+  while (!(PREG_CHECK(RCC->CR, RCC_CR_HSERDY_Pos)));
 
   /* LSI enable and wait until it runs */
   PREG_SET(RCC->CSR, RCC_CSR_LSION_Pos);
-  check = 0;
-  while (!check) {
-    check = PREG_CHECK(RCC->CR, RCC_CSR_LSIRDY_Pos);
-  }
+  while (!(PREG_CHECK(RCC->CR, RCC_CSR_LSIRDY_Pos)));
 
   /* Enable backup registers access */
   PREG_SET(PWR->CR, PWR_CR_DBP_Pos);
@@ -239,10 +224,7 @@ void SystemInit (void) {
 
   /* LSE enable and wait until it runs */
   PREG_SET(RCC->BDCR, RCC_BDCR_LSEON_Pos);
-  check = 0;
-  while (!check) {
-    check = PREG_CHECK(RCC->CR, RCC_BDCR_LSERDY_Pos);
-  }
+  while (!(PREG_CHECK(RCC->CR, RCC_BDCR_LSERDY_Pos)));
 
   /* RTC Source is LSE */
   MODIFY_REG(RCC->BDCR, RCC_BDCR_RTCSEL, RCC_BDCR_RTCSEL_0);
@@ -254,12 +236,9 @@ void SystemInit (void) {
   RCC->CFGR |= RCC_CFGR_PLLMULL9; // mutiprexing pll on 9
   PREG_SET(RCC->CFGR, RCC_CFGR_PLLSRC_Pos); // PLL is the clock source
 
-  /* PLL enable and wait until it runs*/
+  /* PLL enable and wait until it runs */
   PREG_SET(RCC->CR, RCC_CR_PLLON_Pos);
-  check = 0;
-  while (!check) {
-    check = PREG_CHECK(RCC->CR, RCC_CR_PLLRDY_Pos);
-  }
+  while (!(PREG_CHECK(RCC->CR, RCC_CR_PLLRDY_Pos)));
 
   /* AHB clock isn't divided */
   /* APB1 clock divided by 2 */
@@ -272,5 +251,45 @@ void SystemInit (void) {
 
 
   SystemCoreClock = 72000000;
+
+
+
+
+
+  /*----------------------------------------------------------------------------*/
+  /*                          Set peripheral clocks                             */
+  /*----------------------------------------------------------------------------*/
+  /* AHB peripherals */
+  SET_BIT(RCC->AHBENR, (
+      RCC_AHBENR_DMA1EN
+    | RCC_AHBENR_CRCEN
+    | RCC_AHBENR_SRAMEN
+  ));
+
+  /* APB1 peripherals */
+  SET_BIT(RCC->APB1ENR, (
+    RCC_APB1ENR_TIM7EN
+  ));
+
+  /* APB2 peripherals */
+  SET_BIT(RCC->APB2ENR, (
+      RCC_APB2ENR_IOPAEN
+    | RCC_APB2ENR_IOPEEN
+    | RCC_APB2ENR_USART1EN
+    | RCC_APB2ENR_SPI1EN
+  ));
+
+
+  
+  
+  /* Stop ticking peripheral while debugging */
+  #if (DEBUG != 0)
+    SET_BIT(DBGMCU->CR , (
+        DBGMCU_CR_DBG_TIM7_STOP
+      | DBGMCU_CR_DBG_IWDG_STOP
+      | DBGMCU_CR_DBG_WWDG_STOP
+    ));
+  #endif /* DEBUG */
+
 }
 
